@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(
-    name='robust_face_landmarks_detector',
+    name='fast_face_landmarks_detector',
     version='1.0',
-    packages=['face_marks_2d3d'],
+    packages=['fastlmarks'],
     url='',
     license='',
     author='andrey rybin',
