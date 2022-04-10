@@ -2,6 +2,11 @@
 CNN for face landmarks detection with training scripts in focus of robustness against bounding box size and shape
 <img src="ezgif-2-7fa0691c7c.gif"/></img>
 
+## Installation
+conda create -n fastlmarks python==3.7 tensorflow==2.3
+conda activate fastlmarks
+pip install .
+
 ## Test trained detector on image from 
 Make gif like above. You can run crop test on your own image or prepair images from 300W folder.
 To do it run 4 and 6 steps from "300W preprocessing" section.
