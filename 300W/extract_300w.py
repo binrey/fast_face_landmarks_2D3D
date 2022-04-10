@@ -83,7 +83,9 @@ def main(db_sourse, db_target, max_size, debug = False):
             for pt in lmarks:
                 img = cv2.circle(img, tuple(pt), 1, (0, 0, 0), 3)
             cv2.imshow("face", img)
-            cv2.waitKey()
+            k = cv2.waitKey(0)
+            if k == 27:
+                break
 
 
         fname_new = "{:06d}.png".format(i)
