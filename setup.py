@@ -9,5 +9,5 @@ setup(
     author='andrey rybin',
     author_email='binrey@icloud.com',
     description='face landmarks detector for 2D and 3D',
-    install_requires=["tensorflow==2.2.0", "opencv-python", "numpy"]
+    install_requires=["tensorflow==2.2.0", "opencv-python", "imgaug", "face_alignment"]
 )

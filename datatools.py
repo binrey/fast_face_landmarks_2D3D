@@ -2,7 +2,6 @@ import imgaug as ia
 import os
 import numpy as np
 import cv2
-from matplotlib import pyplot as plt
 from imgaug import augmenters as iaa
 from random import shuffle
 
@@ -31,6 +30,7 @@ class Aug():
 
         lmarksaug = lmarksaug.to_xy_array().flatten()
         return imaug, lmarksaug
+
 
 class Loader300W():
     """
@@ -117,12 +117,85 @@ class Generator(object):
                     yield tmp_inp, tmp_targets 
             #if not train:
             #    break
-                    
-def show_xy(x, y_true=None, y_pred=None):
-    plt.imshow(x+0.5, cmap="gray")
-    if y_true is not None:
-        cmap = np.arange(len(y_true)/2)
-        plt.scatter(y_true[0::2]*x.shape[1], y_true[1::2]*x.shape[0], c=cmap, s=100, marker="*")
-    if y_pred is not None:  
-        cmap = np.arange(len(y_pred)/2)
-        plt.scatter(y_pred[0::2]*x.shape[1], y_pred[1::2]*x.shape[0], c=cmap)
+
+
+def vis_data2d(data_dir):
+    with open(os.path.join(data_dir, "annotations.txt"), "r") as f:
+        line = f.readline()
+        while len(line):
+            fname, *vals = line.split()
+            vals = list(map(int, vals))
+            lmarks = np.array(vals)
+
+            lmarks = lmarks.reshape(-1, 2)
+
+            img = cv2.imread(os.path.join(data_dir, fname))
+            for pt in lmarks:
+                img = cv2.circle(img, tuple(pt), 1, (0, 0, 0), 3)
+            cv2.imshow("face", img)
+            k = cv2.waitKey(0)
+            if k == 27:
+                break
+            line = f.readline()
+
+
+def create_3D_annotations(data_dir):
+    import face_alignment
+
+    annfile = open(os.path.join(data_dir, "annotations3D.txt"), "w")
+    annfile.close()
+    fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._3D, flip_input=False, device="cpu")
+    fnames = []
+    lmarks2D = []
+    def get_item(n):
+        img = cv2.imread(os.path.join(data_dir, fnames[n]), 0)
+        if img is None:
+            print("!!! {}".format(os.path.join(data_dir, fnames[n])))
+            return None, None
+        y = lmarks2D[n].copy()
+        return img, y
+
+    with open(os.path.join(data_dir, "annotations.txt"), "r") as f:
+        line = f.readline()
+        while len(line):
+            fname, *vals = line.split()
+            vals = list(map(int, vals))
+            lmarks2D.append(np.array(vals, dtype=np.float32))
+            fnames.append(fname)
+            line = f.readline()
+
+    for n in range(len(fnames)):
+        img, lm2D = get_item(n)
+        lm2D = lm2D.reshape(-1, 2)
+        xmin, ymin = lm2D.min(0)
+        xmax, ymax = lm2D.max(0)
+        lm3D = fa.get_landmarks_from_image(img, detected_faces=[[xmin, ymin, xmax, ymax]])[0]
+
+        print("{:40}".format(fnames[n]), img.shape)
+        with open(os.path.join(data_dir, "annotations3D.txt"), "a") as annfile:
+            annfile.write(fnames[n])
+            for pt in lm3D:
+                annfile.write(" {} {} {}".format(*[round(c) for c in pt]))
+            annfile.write("\n")
+
+
+if __name__ == "__main__":
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+    """
+    subpursers = parser.add_subparsers(title="api", help="available actions")
+    vis2d = subpursers.add_parser("vis2d")
+    vis2d.add_argument("data_dir", type=str, help="path to data with annotations.txt and images")
+    create3d = subpursers.add_parser("create3d")#(title="Create 3D landmarks based on 2d annotations")
+    create3d.add_argument("data_dir", type=str, help="path to data with annotations.txt and images")    
+    """
+    parser.add_argument("api", choices=["vis2d", "create3d"], help="available actions")
+    parser.add_argument("data_dir", type=str, help="path to data with annotations.txt and images")
+
+    args = parser.parse_args()
+
+    if args.api == "vis2d":
+        vis_data2d(args.data_dir)
+    elif args.api == "create3d":
+        create_3D_annotations(args.data_dir)
