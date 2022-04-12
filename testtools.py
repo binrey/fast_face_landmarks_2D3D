@@ -86,9 +86,9 @@ def plot2D(frame, y_true=None, y_pred=None):
     fig, ax = plt.subplots()
     plt.imshow(frame, cmap="gray")
     if y_true is not None:
-        plt.scatter(y_true[:,0]*w, y_true[:,1]*h, s=10, marker="*")
+        plt.scatter(y_true[:,0]*w, y_true[:, 1]*h, s=10, marker="*")
     if y_pred is not None:
-        plt.scatter(y_pred[:,0]*w, y_pred[:,1]*h, s=10)
+        plt.scatter(y_pred[:,0]*w, y_pred[:, 1]*h, s=10)
 
     ax.set_xlim(0, w)
     ax.set_ylim(h, 0)
@@ -171,13 +171,14 @@ def plot3D(frame, lmarks, return_array=False):
     return fig
 
 
-def cam(lmarks_predict_func, box_default=None):
+def cam(lmarks_predict_func, zoom=1):
     lmarks_ma = None
     with create_camera_reader(need_timestamps=True, mirror=True, delay=0) as camera_reader:
         for frame, cur_time in camera_reader:
-            box = box_default
-            if box is None:
-                box = [0, 0, frame.shape[0], frame.shape[0]]
+            h, w = frame.shape[:2]
+            cy, cx = h//2, w//2
+            d = int(h/zoom)
+            box = [cx-d//2, cy-d//2, cx+d//2, cy+d//2]
 
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
@@ -212,8 +213,7 @@ if __name__ == "__main__":
     parser.add_argument("api", choices=["croptest", "cam"], type=str, help="available choices")
     parser.add_argument("-m", type=str, help="path to h5 model file")
     parser.add_argument("--img", type=str, help="path to image file")
-    parser.add_argument("--box", type=int, nargs=4, help="left, top, right, bottom coordinates of bounding box in "
-                                                         "pixels separated by space, defalt - squared crop")
+    parser.add_argument("--zoom", type=float, help="scale bounding box, 1 - box equal frame height")
     args = parser.parse_args()
 
     model = load_model(args.m)
@@ -229,4 +229,4 @@ if __name__ == "__main__":
             ct.test_image(args.img)
             print("\n>>> mean deviation of predictions, px:",  ct.mean_pixel_std())
     else:
-        cam(kw, box_default=args.box)
+        cam(kw, max(args.zoom, 1))
