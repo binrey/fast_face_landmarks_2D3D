@@ -173,6 +173,7 @@ def plot3D(frame, lmarks, return_array=False):
 
 def cam(lmarks_predict_func, zoom=1):
     lmarks_ma = None
+    #vwriter = cv2.VideoWriter("video.avi",cv2.VideoWriter_fourcc('M','J','P','G'), 10, (360,360))
     with create_camera_reader(need_timestamps=True, mirror=True, delay=0) as camera_reader:
         for frame, cur_time in camera_reader:
             h, w = frame.shape[:2]
@@ -200,6 +201,8 @@ def cam(lmarks_predict_func, zoom=1):
                                       return_array=True)
 
             cv2.imshow("cam: for exit press <q>", picture2show)
+            #vwriter.write(picture2show)
+    #vwriter.release()
 
 
 if __name__ == "__main__":

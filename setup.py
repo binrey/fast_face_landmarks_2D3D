@@ -1,13 +1,21 @@
 from setuptools import setup
 
+requirements = [
+    "opencv-python",
+    "matplotlib",
+    "opencv-python",
+    "imgaug",
+    "face_alignment"
+]
+
 setup(
-    name='fast_face_landmarks_detector',
+    name='fast_face_landmarks_2D3D',
     version='1.0',
-    packages=['fastlmarks'],
+    packages=[],
     url='',
     license='',
     author='andrey rybin',
     author_email='binrey@icloud.com',
     description='face landmarks detector for 2D and 3D',
-    install_requires=["tensorflow==2.2.0", "opencv-python", "imgaug", "face_alignment"]
+    install_requires=requirements
 )

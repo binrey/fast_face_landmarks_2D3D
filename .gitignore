@@ -1,0 +1,5 @@
+croptest_out/
+300W/test_crop
+300W/train_crop
+.idea/
+*.pyc
