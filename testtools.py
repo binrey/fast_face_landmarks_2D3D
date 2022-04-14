@@ -7,27 +7,29 @@ from camera_reader import create_camera_reader
 from matplotlib import pyplot as plt
 
 
-def keras_wrapper(img_crop, model):
+def keras_wrapper(model):
     """
     input img_crop: face crop before resize
     output: landmarks as flatten np.array
     """
-    net_input = img_crop.copy()
-    if img_crop.ndim == 3:
-        net_input = cv2.cvtColor(net_input, cv2.COLOR_BGR2GRAY)
-    net_input = cv2.resize(net_input, model.input_shape[1:-1][::-1])
-    net_input = net_input.reshape(1, net_input.shape[0], net_input.shape[1], 1)
-    lmarks = model.predict(net_input).flatten()
+    def predict(img_crop):
+        net_input = img_crop.copy()
+        if img_crop.ndim == 3:
+            net_input = cv2.cvtColor(net_input, cv2.COLOR_BGR2GRAY)
+        net_input = cv2.resize(net_input, model.input_shape[1:-1][::-1])
+        net_input = net_input.reshape(1, net_input.shape[0], net_input.shape[1], 1)
+        lmarks = model.predict(net_input).flatten()
 
-    if "2d" in model.name:
-        lmarks = lmarks.reshape(-1, 2)
-    if "3d" in model.name:
-        lmarks = lmarks.reshape(-1, 3)
-    return lmarks
+        if "2d" in model.name:
+            lmarks = lmarks.reshape(-1, 2)
+        if "3d" in model.name:
+            lmarks = lmarks.reshape(-1, 3)
+        return lmarks
+    return predict
 
 
 class CropTester():
-    def __init__(self, predict_func, pad_min_max=(0, 0.2), num_iterations=100, crop_type="rand", rseed=None):
+    def __init__(self, predict_func, pad_min_max=(0, 0.2), num_iterations=30, crop_type="rand", rseed=None):
         self.predict_func = predict_func
         self.pad_min_max = pad_min_max
         self.num_iterations = num_iterations
@@ -35,6 +37,7 @@ class CropTester():
         self.rseed = rseed
         assert crop_type in ("rand", "scale")
         self.crop_type = crop_type
+        self.x = None
         
         np.random.seed(self.rseed)
         
@@ -44,6 +47,7 @@ class CropTester():
         self.lmarks_all = []
         np.random.seed(None)
         x = cv2.imread(img_path)
+        self.x = x
         if x is None:
             print(f"!!! {img_path}")
             return
@@ -75,18 +79,32 @@ class CropTester():
                 xplot = cv2.circle(xplot, tuple(pt_real), 2, color, 2)
             cv2.imwrite("croptest_out/{:03d}.png".format(aug_iter), xplot)
         self.lmarks_all = np.array(self.lmarks_all)
+
         print("\n>>> Output images are placed in ./croptest_out folder")
         
     def mean_pixel_std(self):
         return self.lmarks_all.std(0).mean()
 
+    def scatter_all(self):
+        fig, ax = plt.subplots()
+        xy = self.lmarks_all.flatten().reshape(-1, 2)
+        plt.imshow(cv2.cvtColor(self.x, cv2.COLOR_BGR2RGB))
+        plt.scatter(xy[:, 0], xy[:, 1], alpha=0.1, c="yellow")
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+        plt.subplots_adjust(left=0., bottom=0., right=1, top=1)
+        plt.show()
+
 
 def plot2D(frame, y_true=None, y_pred=None):
     h, w = frame.shape[:2]
     fig, ax = plt.subplots()
-    plt.imshow(frame, cmap="gray")
+    if frame.ndim == 3:
+        plt.imshow(frame)
+    else:
+        plt.imshow(frame, cmap="gray")
     if y_true is not None:
-        plt.scatter(y_true[:,0]*w, y_true[:, 1]*h, s=10, marker="*")
+        plt.scatter(y_true[:,0]*w, y_true[:, 1]*h, s=100, marker="*")
     if y_pred is not None:
         plt.scatter(y_pred[:,0]*w, y_pred[:, 1]*h, s=10)
 
@@ -101,7 +119,7 @@ def plot2D(frame, y_true=None, y_pred=None):
     return image_from_plot
 
 
-def plot3D(frame, lmarks, return_array=False):
+def plot3D(frame, lmarks, view_pitch=0, return_array=False):
     def angle2axis(ang):
         n = int(abs(ang // 9))
         if ang < 0:
@@ -111,6 +129,11 @@ def plot3D(frame, lmarks, return_array=False):
         return s
 
     def head_pos(pleft, pright, ptop, pbottom):
+        """
+        Calc head orientation (yaw and pitch angles) based on some horisontal line
+        (points pleft, pright, for example eyes points) and vertical line
+        (points ptop, pbottom, for example mean eyes point and upper lip point)
+        """
         yaw = -math.atan((pright[2] - pleft[2]) / (pright[0] - pleft[0])) * 180 / math.pi
         pitch = math.atan((ptop[2] - pbottom[2]) / (ptop[1] - pbottom[1])) * 180 / math.pi
         return yaw, pitch
@@ -144,7 +167,7 @@ def plot3D(frame, lmarks, return_array=False):
     ax.set_ylim(0, frame_height)
     ax.set_zlim(0, frame_width)
 
-    ax.view_init(120, 90)
+    ax.view_init(view_pitch+90, 90)
     ax.dist = 7
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -173,7 +196,7 @@ def plot3D(frame, lmarks, return_array=False):
 
 def cam(lmarks_predict_func, zoom=1):
     lmarks_ma = None
-    #vwriter = cv2.VideoWriter("video.avi",cv2.VideoWriter_fourcc('M','J','P','G'), 10, (360,360))
+    nframe = 0
     with create_camera_reader(need_timestamps=True, mirror=True, delay=0) as camera_reader:
         for frame, cur_time in camera_reader:
             h, w = frame.shape[:2]
@@ -199,10 +222,13 @@ def cam(lmarks_predict_func, zoom=1):
                 picture2show = plot3D(frame=crop,
                                       lmarks=lmarks_ma.reshape((-1, 3)),
                                       return_array=True)
+            else:
+                continue
 
+            cv2.imwrite("vout/{:04d}.png".format(nframe), picture2show)
+            nframe += 1
             cv2.imshow("cam: for exit press <q>", picture2show)
-            #vwriter.write(picture2show)
-    #vwriter.release()
+
 
 
 if __name__ == "__main__":
@@ -216,20 +242,20 @@ if __name__ == "__main__":
     parser.add_argument("api", choices=["croptest", "cam"], type=str, help="available choices")
     parser.add_argument("-m", type=str, help="path to h5 model file")
     parser.add_argument("--img", type=str, help="path to image file")
-    parser.add_argument("--zoom", type=float, help="scale bounding box, 1 - box equal frame height")
+    parser.add_argument("--zoom", type=float, help="scale bounding box, 1 - box equal frame height", default=1)
     args = parser.parse_args()
 
     model = load_model(args.m)
     print(model.name)
     print(model.summary())
-    kw = partial(keras_wrapper, model=model)
 
     if args.api == "croptest":
-        ct = CropTester(kw)
+        ct = CropTester(keras_wrapper(model))
         if args.img is None:
             print("!!! --img argument must be defined")
         else:
             ct.test_image(args.img)
             print("\n>>> mean deviation of predictions, px:",  ct.mean_pixel_std())
+            ct.scatter_all()
     else:
-        cam(kw, max(args.zoom, 1))
+        cam(keras_wrapper(model), max(args.zoom, 1))
