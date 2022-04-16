@@ -6,8 +6,12 @@ conda activate fastlmarks
 python setup.py develop
 
 ## Face Landmarks 2D Detector
-CNN for face landmarks detection with training scripts in focus of robustness against bounding box size and shape
-<img src="ezgif-2-7fa0691c7c.gif"/></img>
+A tiny convolutional net for facial landmarks detection developed in focus of robustness 
+against bounding box size and shape. This repository contains tools for building train and test neural net. 
+Test tools can be used to observe how stable predicted landmarks are when size and position of bounding box changes.
+Below presented such test with two other nets ([MobileNet](https://github.com/cunjian/face_alignment) and [CNN-Caffe](https://github.com/songhengyang/face_landmark_factory)).
+
+<img src="vid2d.gif"/></img>
 
 ### Crop-test detector on image 
 Make gif like above. You can run crop test on your own image or prepair images from 300W folder.
@@ -52,13 +56,13 @@ python vis_data.py 300W/test_crop
 ```
 
 ### Train 2D detector
-
+Use jupyter notebook Train3D.ipynd
 
 ## Face Landmarks 3D Detector
 Fast convolutional net for 3D face landmarks detection with training scripts. 
-Procedure of automated labeling data with 2D landmarks is provided. 
-Final 3D model is trained on this "synthetic data".
+Procedure of automated labeling data with 2D landmarks is provided.
 
+<img src="vid3d.gif"/></img>
 ### Test detector on camera
 Fully convolutional model trained on 300W dataset (see...)
 ```buildoutcfg
@@ -75,3 +79,4 @@ python datatools.py create3d 300W/test_crop/
 python datatools.py create3d 300W/train_crop/
 ```
 ### Train 3D detector
+Use jupyter notebook Train3D.ipynd
