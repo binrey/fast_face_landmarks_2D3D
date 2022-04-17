@@ -1,9 +1,11 @@
 # Fast Face Landmarks 2D and 3D Detector
 
 ## Installation
+```
 conda create -n fastlmarks python==3.7 tensorflow==2.3    
 conda activate fastlmarks    
 python setup.py develop
+```
 
 ## Face Landmarks 2D Detector
 A tiny convolutional net for facial landmarks detection developed in focus of robustness 
@@ -14,7 +16,7 @@ Below presented such test with two other nets ([MobileNet](https://github.com/cu
 <img src="vid2d.gif"/></img>
 
 ### Crop-test detector on image 
-Make gif like above. You can run crop test on your own image or prepair images from 300W folder.
+Make gif like above. You can run crop test on your own image or prepare images from 300W folder.
 To do it run 4 and 6 steps from "300W preprocessing" section.
 Also, you can find some more validation scripts in Train.ipynb notebook. 
 ```buildoutcfg
@@ -35,7 +37,7 @@ python testtools.py cam -m vanilla-68/checkpoints/model_final.h5
 cd 300W
 ````
 
-5. To examinate dataset crops run:    
+5. To display how dataset images will be cropped run:    
 
 ````buildoutcfg
 python extract_300w.py train train_crop --max_size 256 --debug
@@ -56,11 +58,14 @@ python vis_data.py 300W/test_crop
 ```
 
 ### Train 2D detector
-Use jupyter notebook Train3D.ipynd
+Use jupyter notebook Train2D.ipynd
 
 ## Face Landmarks 3D Detector
-Fast convolutional net for 3D face landmarks detection with training scripts. 
+Simple and fast convolutional net for 3D face landmarks detection. 
 Procedure of automated labeling data with 2D landmarks is provided.
+This repository contains tools for building, train and test neural net.
+Training may be done with any unlabeled data using teacher-net (In this case chosen [face-alignment](https://github.com/1adrianb/face-alignment)). 
+This method produce model fconv3d-12 for 12 landmarks that "copy" teacher-model with 1.3% error and infer 10x faster.
 
 <img src="vid3d.gif"/></img>
 ### Test detector on camera
@@ -73,7 +78,8 @@ python testtools.py cam -m fconv3d-12/checkpoints/model_final.h5
 You have two options: 
 1. convert 300W dataset using instructions from "300W preprocessing" 
 2. use your own data in proper format (with "annotations.txt" file)    
-Using havy and precise model new 3D annotations are generated. Below with 300W example:
+
+Generate new 3D annotations using teacher-model:
 ```buildoutcfg
 python datatools.py create3d 300W/test_crop/
 python datatools.py create3d 300W/train_crop/
